@@ -1,0 +1,17 @@
+{
+  "name": "branchversion",
+  "version": "1.0.0",
+  "description": "Updates the semantic version.  Designed to work with CI/CD pipelines to update version during a build based on which branch is being built",
+  "main": "version.js",
+  "scripts": {
+    "start": "node version.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Adam Knight",
+  "license": "ISC",
+  "dependencies": {
+    "command-line-args": "^5.0.2",
+    "command-line-usage": "^5.0.3",
+    "semver": "^5.5.0"
+  }
+}
