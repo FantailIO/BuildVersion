@@ -29,12 +29,13 @@ const branchSettings = {
     'level': 'minor'
   },
   'release': {
-    'level': 'preminor',
-    'label': 'rc'
+    'level': 'preminor'
+  },
+  'pullrequest': {
+    'level': 'prepatch'
   },
   'feature': {
-    'level': 'prepatch',
-    'label': 'beta'
+    'level': 'prepatch'
   }
 }
 
@@ -67,19 +68,40 @@ function saveVersionFile(versionFile, versionInfo) {
 }
 
 function getConfig(branch) {
+  if(verbose) console.log('Actual Git branch is ' + branch);
+  branch = branch.replace(/^\//, "");                // Drop the leading slash
+  branch = branch.replace(/^refs\//, "");           // Drop refs, if it comes at the start and is followed by /
+  branch = branch.replace(/^heads\//, "");          // Drop heads, if it comes at the (new) start and is followed by /
+  if(verbose) console.log('Trimmed Git branch is ' + branch);
+
   var index = branch;
-  if(index.match(/feature\/.*/)) index = 'feature';
-  if(index.match(/release\/.*/)) index = 'release';
+  var label = null;
+  if(index.match(/feature\/.*/)) {
+    index = 'feature';
+    label = branch.match(/feature\/(.*)/)[1];
+  }
+  if(index.match(/release\/.*/)) {
+    index = 'release';
+    label = branch.match(/release\/(.*)/)[1];
+  }
+  if(index.match(/pull\/.*/)) {
+    index = 'pullrequest';
+    label = 'pr';
+  }
 
   if(verbose) console.log('Loading config for ' + index);
+
   var config = branchSettings[index];
-  if(verbose) console.log('Config is ' + JSON.stringify(config));
+
   if(config == null) {
     if(verbose) console.log('Config not found, using defaults.  Set the branch up: ' + branch);
     config = {
       'level': 'patch'
     };
   }
+  config.label = label;
+
+  if(verbose) console.log('Config is ' + JSON.stringify(config));
 
   return config;
 }
@@ -87,6 +109,7 @@ function getConfig(branch) {
 function updateVersionInfo(versionInfo, branch) {
   var config = getConfig(branch);
   if(versionInfo.forceVersion) {
+    if(verbose) console.log('The version is being forcibly set to ' + versionInfo.forceVersion);
     versionInfo.currentVersion = versionInfo.forceVersion;
     versionInfo.forceVersion = '';
   } else {
@@ -96,9 +119,20 @@ function updateVersionInfo(versionInfo, branch) {
       // pre-release version, so don't change the version number, just change
       // the pre-release tag.
       config.level = 'prerelease';
+
+      // Develop can be behind the master version after a release.  Update it here!
+    }
+    console.log(JSON.stringify(versionInfo))
+    if(versionInfo.masterVersion
+      && semver.valid(versionInfo.masterVersion)
+      && semver.gt(versionInfo.masterVersion, versionInfo.previousVersion)) {
+
+        if(verbose) console.log('The master version is ahead: ' + versionInfo.masterVersion + ' > ' + versionInfo.previousVersion);
+        versionInfo.previousVersion = versionInfo.masterVersion
     }
 
     var currentVersion = semver.inc(versionInfo.previousVersion, config.level, config.label);
+    if(verbose) console.log('The next version has been calculated as ' + currentVersion);
     versionInfo.currentVersion = currentVersion;
   }
 
@@ -116,6 +150,7 @@ if(!semver.valid(version)) {
 //var versionInfo = readVersionFile(versionFile);
 var versionInfo = {};
 versionInfo.previousVersion = version;
+versionInfo.masterVersion = master;
 versionInfo = updateVersionInfo(versionInfo, branch);
 saveVersionFile(versionFile, versionInfo);
 
@@ -132,6 +167,7 @@ function processCommandLine() {
     //{ name: 'dryrun', alias: 'd', type: Boolean, description: 'If set, will show what the next version is without updating the version file' },
     { name: 'versionFile', alias: 'f', type: String, description: 'The name of the version file. If specified, this file must exist. Defaults to version.json', typeLabel: '[underline]{file}' },
     { name: 'version', alias: 'v', type: String, description: 'The current version, whatever it may be', typeLabel: '[underline]{version}' },
+    { name: 'master', alias: 'm', type: String, description: 'The version that master is currently on, whatever it may be', typeLabel: '[underline]{master}' },
     { name: 'branch', alias: 'b', type: String, description: 'The branch being built. Defaults to develop', typeLabel: '[underline]{branch}' }
   ];
 
@@ -168,5 +204,6 @@ function processCommandLine() {
   dryrun = options.dryrun;
   versionFile = options.versionFile;
   version = options.version;
+  master = options.master;
   branch = options.branch;
 }
