@@ -36,7 +36,21 @@ Options
   -b, --branch            The branch being built. Defaults to develop
 ```
 
-The current version can be stored as a Git tag, and retrieved with:
+By default, Build Version writes the calculated version to a file, which can be
+read to get the next version.  The calculated value is set into `currentVersion`
+in the JSON object in the file.  To get the info on the command line, run with
+the `--dryrun` flag, and the JSON will be written to STDOUT instead of a file.
+
+
+## What Version am I on Now?
+
+The current version can be stored as a Git tag:
+
+```
+git tag -am "Tagging a build" 1.0.0
+```
+
+and retrieved with:
 
 ```
 git describe --first-parent --exclude [a-zA-Z]* --tags --abbrev=0
@@ -64,9 +78,26 @@ git describe --first-parent --exclude [a-zA-Z]* --tags --abbrev=0 origin/master
 
 Occasionally you want to make a breaking change, which should bump the Major
 semver number to the next value.  You can do this 2 ways, either by setting a
-pre-release tag on the `master` branch, or by using using the forceVersion
-setting in the configuration file (NYI).  If you do this though, you'll need
-to remember to take the forceVersion setting out again after the release!
+pre-release tag on the `master` branch, or by using using the `forceVersion`
+setting in the configuration file.  If you do this though, you'll need
+to remember to take the `forceVersion` setting out again after the release!
+
+For example, to force the next version to be 2.0.0, you could tag your `release`
+branch:
+
+```
+git tag -am "Tagging to force the version" 2.0.0-rc.0
+```
+
+then make the release
+
+```
+git flow release finish
+git push --all
+```
+
+The CICD server will then pick up the `develop` and `master` branches and build
+them, making the next `master` version 2.0.0.
 
 ## Configuration
 
@@ -76,8 +107,14 @@ configurable though!  Run BuildVersion with the `--dumpConfig` flag to see the
 JSON structure that defines the config.  This is can be saved in a config file
 and modified, then used with the `--config` option.
 
-The config specifies the
+The config specifies the Semver part that should be incremented.  Build Version
+uses the NPM Semver (https://www.npmjs.com/package/semver) library under the
+hood to increment versions, and the level codes can be found in that library's
+docs.
 
+**TODO**: Allow specification of pre-release labels in branch settings
+**TODO**: Allow regex patterns in branch settings to match complex branches
+    such as `feature/myNewFeature`
 ```
 {
   "forceVersion": "",

@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 #>
 
+<#
+This is provided as an example. I used this with a VSTS build to version a
+GitFlow project. 
+#>
 
 $version = git describe --first-parent --exclude [a-zA-Z]* --tags --abbrev=0
 $masterVersion = git describe --first-parent --exclude [a-zA-Z]* --tags --abbrev=0 origin/master
@@ -21,7 +25,7 @@ $masterVersion = git describe --first-parent --exclude [a-zA-Z]* --tags --abbrev
 Write-Host "##vso[task.setvariable variable=version]$version"
 Write-Host "##vso[task.setvariable variable=masterVersion]$masterVersion"
 
-node .cicd\version\version.js --branch $env:Build.SourceBranch --version $version --master $masterVersion --versionFile version.json -V
+node .cicd\version\version.js --branch $env:Build.SourceBranch --version $version --master $masterVersion --outputFile version.json  
 
 $versions = ConvertFrom-Json "$(get-content "version.json")"
 $currentVersion = $versions.currentVersion
