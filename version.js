@@ -22,6 +22,7 @@ const commandLineUsage = require('command-line-usage')
 // This sets up which number is incremented on a build.  Change this if
 // you want to adjust the versions to suit a different style.
 const branchSettings = {
+  'forceVersion': null,
   'develop': {
     'level': 'patch'
   },
@@ -170,22 +171,51 @@ if(options.verbose) console.log('New version is ' + versionInfo.currentVersion);
  */
 function processCommandLine() {
   const optionDefinitions = [
-    { name: 'help', alias: 'h', type: Boolean, description: 'Show usage' },
-    { name: 'verbose', alias: 'V', type: Boolean, description: 'Print extra logging info' },
-    { name: 'dumpConfig', alias: 'z', type: Boolean, description: 'Dump the default config out to the command line. Cannot be used with any other options' },
-    { name: 'dryrun', alias: 'd', type: Boolean, description: 'If set, will show what the next version is without updating the output file' },
-    { name: 'outputFile', alias: 'o', type: String, description: 'The name of the file where BuildVersion will write its results. Defaults to version.json', typeLabel: '[underline]{file}' },
-    { name: 'config', alias: 'c', type: String, description: 'The config file to read. If this is specified then the default config will not be used.', typeLabel: '[underline]{file}' },
-    { name: 'version', alias: 'v', type: String, description: 'The current version, whatever it may be', typeLabel: '[underline]{version}' },
-    { name: 'master', alias: 'm', type: String, description: 'The version that master is currently on, whatever it may be', typeLabel: '[underline]{master}' },
-    { name: 'branch', alias: 'b', type: String, description: 'The branch being built. Defaults to develop', typeLabel: '[underline]{branch}' }
+    { name: 'help', alias: 'h', type: Boolean,
+      description: 'Show usage' },
+    { name: 'verbose', alias: 'V', type: Boolean,
+      description: 'Print extra logging info' },
+    { name: 'dumpConfig', alias: 'z', type: Boolean,
+      description: 'Dump the default config out to the command line. Cannot be'
+      + ' used with any other options' },
+    { name: 'dryrun', alias: 'd', type: Boolean,
+      description: 'If set, will show what the next version is without updating'
+      + ' the output file. Cannot be used with the --output option.'  },
+    { name: 'outputFile', alias: 'o', type: String,
+      description: 'The name of the file where BuildVersion will write its'
+      + ' results. Defaults to version.json. Cannot be used with the --dryrun'
+      + ' flag', typeLabel: '[underline]{file}' },
+    { name: 'config', alias: 'c', type: String,
+      description: 'The config file to read. If this is specified then the'
+      + ' default config will not be used.', typeLabel: '[underline]{file}' },
+    { name: 'version', alias: 'v', type: String,
+      description: 'The current version, whatever it may be',
+      typeLabel: '[underline]{version}' },
+    { name: 'master', alias: 'm', type: String,
+      description: 'The version that master is currently on, whatever it may be',
+      typeLabel: '[underline]{master}' },
+    { name: 'branch', alias: 'b', type: String,
+      description: 'The branch being built. Defaults to develop',
+      typeLabel: '[underline]{branch}' }
   ];
 
   const sections = [
     {
-      header: 'Version updater',
+      header: 'Build Version',
       content: 'Automatically calculates the next semantic version, based on ' +
         'the branch being built and the current version of a project'
+    },
+    {
+      header: 'Synopsis',
+      content: [
+        '$ buildVersion --help',
+        '$ buildVersion --dumpConfig',
+        '$ buildVersion [--verbose] --branch develop --version 1.0.7 '
+          + '--master 1.1.0 [--outputFile version.json] '
+          + '[--config config.json]',
+        '$ buildVersion [--verbose] --branch develop --version 1.0.7 [--dryrun]'
+          + '[--config config.json]'
+      ]
     },
     {
       header: 'Options',
@@ -193,18 +223,40 @@ function processCommandLine() {
     }
   ]
 
+  var exitCode = 0;
   try {
     var options = {};
     options = commandLineArgs(optionDefinitions);
+
   } catch(err) {
-    console.error(err);
+    if(err.name === 'UNKNOWN_OPTION') {
+      console.error('Unknown option: ' + err.optionName);
+    } else if(err.name === 'ALREADY_SET') {
+      console.error('Option set more than once: ' + err.optionName);
+    } else {
+      console.error('Error reading the command line: ' + err);
+    }
+
+    exitCode = 1;
     options.help = true;
   }
 
   if (options.help) {
     const usage = commandLineUsage(sections)
     console.log(usage)
-    process.exit(0);
+    process.exit(exitCode);
+  }
+
+  // Cannot have the dryrun flag and output file set at the same time
+  if(options.dryrun && options.outputFile) {
+    console.error('Cannot set the --dryrun and --output options at the same time');
+    process.exit(1);
+  }
+
+  // The version is mandatory
+  if(! options.version) {
+    console.error('You have to set the --version');
+    process.exit(1);
   }
 
   // Apply defaults

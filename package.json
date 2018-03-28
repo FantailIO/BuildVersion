@@ -10,8 +10,8 @@
   "author": "Adam Knight",
   "license": "ISC",
   "dependencies": {
-    "command-line-args": "^4.0.7",
-    "command-line-usage": "^4.0.1",
+    "command-line-args": "^5.0.2",
+    "command-line-usage": "^4.0.4",
     "semver": "^5.5.0"
   }
 }
