@@ -61,18 +61,18 @@ function saveVersionFile(versionFile, versionInfo) {
       console.log('Failed to write the version file! Error is ' + err);
       process.exit(1);
     }
-    if(verbose) console.log('Wrote the version info to ' + versionFile);
+    if(options.verbose) console.log('Wrote the version info to ' + versionFile);
   });
 
   return versionInfo;
 }
 
-function getConfig(branch) {
-  if(verbose) console.log('Actual Git branch is ' + branch);
-  branch = branch.replace(/^\//, "");                // Drop the leading slash
+function getConfig(options) {
+  if(options.verbose) console.log('Actual Git branch is ' + options.branch);
+  var branch = options.branch.replace(/^\//, "");                // Drop the leading slash
   branch = branch.replace(/^refs\//, "");           // Drop refs, if it comes at the start and is followed by /
   branch = branch.replace(/^heads\//, "");          // Drop heads, if it comes at the (new) start and is followed by /
-  if(verbose) console.log('Trimmed Git branch is ' + branch);
+  if(options.verbose) console.log('Trimmed Git branch is ' + branch);
 
   var index = branch;
   var label = null;
@@ -89,27 +89,28 @@ function getConfig(branch) {
     label = 'pr';
   }
 
-  if(verbose) console.log('Loading config for ' + index);
+  if(options.verbose) console.log('Loading config for ' + index);
 
   var config = branchSettings[index];
 
   if(config == null) {
-    if(verbose) console.log('Config not found, using defaults.  Set the branch up: ' + branch);
+    if(options.verbose) console.log('Config not found, using defaults.  Set the branch up: ' + branch);
     config = {
       'level': 'patch'
     };
   }
   config.label = label;
 
-  if(verbose) console.log('Config is ' + JSON.stringify(config));
+  if(options.verbose) console.log('Config is ' + JSON.stringify(config));
 
   return config;
 }
 
-function updateVersionInfo(versionInfo, branch) {
-  var config = getConfig(branch);
+function updateVersionInfo(versionInfo, options) {
+  if(options.verbose) console.log('The branch being updated is ' + options.branch);
+  var config = getConfig(options);
   if(versionInfo.forceVersion) {
-    if(verbose) console.log('The version is being forcibly set to ' + versionInfo.forceVersion);
+    if(options.verbose) console.log('The version is being forcibly set to ' + versionInfo.forceVersion);
     versionInfo.currentVersion = versionInfo.forceVersion;
     versionInfo.forceVersion = '';
   } else {
@@ -127,35 +128,42 @@ function updateVersionInfo(versionInfo, branch) {
       && semver.valid(versionInfo.masterVersion)
       && semver.gt(versionInfo.masterVersion, versionInfo.previousVersion)) {
 
-        if(verbose) console.log('The master version is ahead: ' + versionInfo.masterVersion + ' > ' + versionInfo.previousVersion);
+        if(options.verbose) console.log('The master version is ahead: ' + versionInfo.masterVersion + ' > ' + versionInfo.previousVersion);
         versionInfo.previousVersion = versionInfo.masterVersion
     }
 
     var currentVersion = semver.inc(versionInfo.previousVersion, config.level, config.label);
-    if(verbose) console.log('The next version has been calculated as ' + currentVersion);
+    if(options.verbose) console.log('The next version has been calculated as ' + currentVersion);
     versionInfo.currentVersion = currentVersion;
   }
 
   return versionInfo;
 }
 
-processCommandLine();
+var options = processCommandLine();
 
-if(!semver.valid(version)) {
-  console.log("The version " + version + " is not a valid semantic version. Please try again");
+if(!semver.valid(options.version)) {
+  console.error("The version " + options.version + " is not a valid semantic version. Please try again");
   process.exitCode = 1;
   return;
 }
 
 //var versionInfo = readVersionFile(versionFile);
 var versionInfo = {};
-versionInfo.previousVersion = version;
-versionInfo.masterVersion = master;
-versionInfo = updateVersionInfo(versionInfo, branch);
-saveVersionFile(versionFile, versionInfo);
+versionInfo.previousVersion = options.version;
+versionInfo.masterVersion = options.master;
+versionInfo = updateVersionInfo(versionInfo, options);
 
-console.log('Previous version was ' + versionInfo.previousVersion);
-console.log('New version is ' + versionInfo.currentVersion);
+if(!options.dryrun) {
+  saveVersionFile(options.outputFile, versionInfo);
+} else {
+  if(options.verbose) console.log('The resulting output is:');
+  // Print the result on the command line
+  console.log(JSON.stringify(versionInfo));
+}
+
+if(options.verbose) console.log('Previous version was ' + versionInfo.previousVersion);
+if(options.verbose) console.log('New version is ' + versionInfo.currentVersion);
 
 /*
  * Reads the command line and sets any params that are requested
@@ -164,8 +172,10 @@ function processCommandLine() {
   const optionDefinitions = [
     { name: 'help', alias: 'h', type: Boolean, description: 'Show usage' },
     { name: 'verbose', alias: 'V', type: Boolean, description: 'Print extra logging info' },
-    //{ name: 'dryrun', alias: 'd', type: Boolean, description: 'If set, will show what the next version is without updating the version file' },
-    { name: 'versionFile', alias: 'f', type: String, description: 'The name of the version file. If specified, this file must exist. Defaults to version.json', typeLabel: '[underline]{file}' },
+    { name: 'dumpConfig', alias: 'z', type: Boolean, description: 'Dump the default config out to the command line. Cannot be used with any other options' },
+    { name: 'dryrun', alias: 'd', type: Boolean, description: 'If set, will show what the next version is without updating the output file' },
+    { name: 'outputFile', alias: 'o', type: String, description: 'The name of the file where BuildVersion will write its results. Defaults to version.json', typeLabel: '[underline]{file}' },
+    { name: 'config', alias: 'c', type: String, description: 'The config file to read. If this is specified then the default config will not be used.', typeLabel: '[underline]{file}' },
     { name: 'version', alias: 'v', type: String, description: 'The current version, whatever it may be', typeLabel: '[underline]{version}' },
     { name: 'master', alias: 'm', type: String, description: 'The version that master is currently on, whatever it may be', typeLabel: '[underline]{master}' },
     { name: 'branch', alias: 'b', type: String, description: 'The branch being built. Defaults to develop', typeLabel: '[underline]{branch}' }
@@ -174,7 +184,8 @@ function processCommandLine() {
   const sections = [
     {
       header: 'Version updater',
-      content: 'Advances the version along to the next semantic version, based on the branch being built.'
+      content: 'Automatically calculates the next semantic version, based on ' +
+        'the branch being built and the current version of a project'
     },
     {
       header: 'Options',
@@ -186,6 +197,7 @@ function processCommandLine() {
     var options = {};
     options = commandLineArgs(optionDefinitions);
   } catch(err) {
+    console.error(err);
     options.help = true;
   }
 
@@ -196,14 +208,9 @@ function processCommandLine() {
   }
 
   // Apply defaults
-  if (options.verbose == null) options.verbose = false;
-  if (options.versionFile == null) options.versionFile = 'version.json';
-  if (options.branch == null) options.branch = 'develop';
+  if (! options.verbose) options.verbose = false;
+  if (! options.outputFile) options.outputFile = 'version.json';
+  if (! options.branch) options.branch = 'develop';
 
-  verbose = options.verbose;
-  dryrun = options.dryrun;
-  versionFile = options.versionFile;
-  version = options.version;
-  master = options.master;
-  branch = options.branch;
+  return options;
 }

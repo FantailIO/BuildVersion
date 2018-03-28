@@ -1,0 +1,17 @@
+{
+  "develop": {
+    "level": "patch"
+  },
+  "master": {
+    "level": "minor"
+  },
+  "release": {
+    "level": "preminor"
+  },
+  "pullrequest": {
+    "level": "prepatch"
+  },
+  "feature": {
+    "level": "prepatch"
+  }
+}
