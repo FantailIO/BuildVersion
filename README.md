@@ -5,7 +5,7 @@ and the current version of a project - designed for use in a CI/CD pipeline.
 ## Install
 
 ```
-npm install -g buildversion
+npm install -g ci-version
 ```
 
 ## Usage
@@ -13,9 +13,9 @@ npm install -g buildversion
 As a command line utility:
 
 ```
-buildversion -h
+ci-version -h
 
-Build Version
+CI Version
 
   Automatically calculates the next semantic version, based on the branch being
   built and the current version of a project
@@ -36,7 +36,7 @@ Options
   -b, --branch            The branch being built. Defaults to develop
 ```
 
-By default, Build Version writes the calculated version to a file, which can be
+By default, CI Version writes the calculated version to a file, which can be
 read to get the next version.  The calculated value is set into `currentVersion`
 in the JSON object in the file.  To get the info on the command line, run with
 the `--dryrun` flag, and the JSON will be written to STDOUT instead of a file.

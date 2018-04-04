@@ -1,13 +1,13 @@
 {
-  "name": "buildversion",
+  "name": "civersion",
   "version": "1.0.0",
-  "description": "Updates the semantic version.  Designed to work with CI/CD pipelines to update version during a build based on which branch is being built",
+  "description": "Calculates the next semantic version.  Designed to work with CI/CD pipelines to update version during a build based on which branch is being built",
   "main": "lib/version.js",
   "scripts": {
     "test": "mocha"
   },
   "bin": {
-    "buildVersion": "./bin/buildversion"
+    "buildVersion": "./bin/civersion"
   },
   "preferGlobal": true,
   "author": "Adam Knight",

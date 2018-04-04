@@ -1,4 +1,0 @@
-#!/usr/bin/env node
-
-var bv = require('../lib/version.js');
-bv.main();

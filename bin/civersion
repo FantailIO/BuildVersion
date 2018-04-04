@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+
+var civersion = require('../lib/version.js');
+civersion.main();
