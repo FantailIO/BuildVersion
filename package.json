@@ -1,17 +1,24 @@
 {
-  "name": "branchversion",
+  "name": "buildVersion",
   "version": "1.0.0",
   "description": "Updates the semantic version.  Designed to work with CI/CD pipelines to update version during a build based on which branch is being built",
-  "main": "version.js",
+  "main": "lib/version.js",
   "scripts": {
-    "start": "node version.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
+  "bin": {
+    "buildVersion": "./bin/buildVersion"
+  },
+  "preferGlobal": true,
   "author": "Adam Knight",
   "license": "ISC",
   "dependencies": {
     "command-line-args": "^5.0.2",
     "command-line-usage": "^4.0.4",
     "semver": "^5.5.0"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^5.0.5"
   }
 }
