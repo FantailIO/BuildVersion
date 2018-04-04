@@ -5,7 +5,7 @@ and the current version of a project - designed for use in a CI/CD pipeline.
 ## Install
 
 ```
-npm install -g buildVersion
+npm install -g buildversion
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ npm install -g buildVersion
 As a command line utility:
 
 ```
-buildVersion -h
+buildversion -h
 
 Build Version
 

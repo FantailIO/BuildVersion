@@ -1,5 +1,5 @@
 {
-  "name": "buildVersion",
+  "name": "buildversion",
   "version": "1.0.0",
   "description": "Updates the semantic version.  Designed to work with CI/CD pipelines to update version during a build based on which branch is being built",
   "main": "lib/version.js",
@@ -7,7 +7,7 @@
     "test": "mocha"
   },
   "bin": {
-    "buildVersion": "./bin/buildVersion"
+    "buildVersion": "./bin/buildversion"
   },
   "preferGlobal": true,
   "author": "Adam Knight",
